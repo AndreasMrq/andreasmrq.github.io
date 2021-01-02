@@ -1,0 +1,11 @@
+.container_about {
+    &_image{
+        float: right;
+        width: 33%;
+        margin-left: 7%;
+    }
+    &_text{
+        display: inline;
+    }
+
+}
