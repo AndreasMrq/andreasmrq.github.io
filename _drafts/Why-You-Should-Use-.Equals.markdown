@@ -7,10 +7,23 @@ tags: C# Equals == IEquatable
 
 ## The Problem
 
-By default, up to now I always used <code>==</code> to compare Objects and ValueTypes in C#. While I was well aware of the fact that this does an equality check on the reference in case of objects (when not overloaded) and a comparison of values in case of most ValueTypes (like <code>int, double, char</code> and also <code>string</code> albeit it's not a ValueTyp
-e)
+By default, up to now I always used <code>==</code> to compare Objects and ValueTypes in C#. While I was well aware of the fact that this does an equality check on the reference in case of objects (when not overloaded) and a comparison of values in case of most ValueTypes (like <code>int, double, char</code> and also <code>string</code> albeit it's not a ValueType)
 
-{% highlight ruby %} def print_hi(name) puts "Hi, #{name}" end print_hi('Tom') #=> prints 'Hi, Tom' to STDOUT. {% endhighlight %}
+{% highlight c# %} 
+  public class Product : IProduct
+  {
+      public string Id { get; set; }
+      public double Price { get; set; }
+  }
+{% endhighlight %}
+
+{% highlight c# %} 
+    public interface IProduct
+    {
+        public string Id { get; }
+        public double Price { get; set; }
+    }
+{% endhighlight %}
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce bibendum neque eget nunc mattis eu sollicitudin enim tincidunt. Vestibulum lacus tortor, ultricies id dignissim ac, bibendum in velit.
 
