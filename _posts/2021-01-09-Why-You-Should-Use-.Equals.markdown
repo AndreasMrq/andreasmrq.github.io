@@ -12,7 +12,7 @@ While I was well aware of the fact that this does an equality check on the refer
 
 To be able to better explain the problem, let's first create a setting. Let's assume we have a class <code>Product</code> that implements an <code>IProduct</code> interface.
 
-{% highlight c# %} 
+{% highlight csharp %} 
   public class Product : IProduct
   {
       public string Id { get; set; }
@@ -42,13 +42,13 @@ public class ProductCatalogue
 }
 {% endhighlight %}
 
-By default, the code on line 7 will perform a check on reference equality[^2]. But the catch is, since we compare interfaces and not the implementations, **we have no means of overloading the operator**. Why is that a problem? In my case it turned out after some significant development time that the default equality check for the class <code>Product</code> should no longer be a check upon the reference but a check if the Id property coincides.
+By default, the code on line 8 will perform a check on reference equality[^2]. But the catch is, since we compare interfaces and not the implementations, **we have no means of overloading the operator**. Why is that a problem? In my case it turned out after some significant development time that the default equality check for the class <code>Product</code> should no longer be a check upon the reference but a check if the Id property coincides.
 
 ## Some Objects Are More .Equals Than Others
 A more future-proof way of performing equality checks on objects is to use the [Equals](https://docs.microsoft.com/de-de/dotnet/api/system.object.equals?view=net-5.0) method or the [ReferenceEquals](https://docs.microsoft.com/de-de/dotnet/api/system.object.referenceequals?view=net-5.0) method if you are sure that you will only want to compare references. Using these methods has two advantages:
 
 1. They make the intent very clear. <code>ReferenceEquals</code> tells any fellow developer that the author thought about it and was reasonably sure that he/she needed to do a comparison of references. <code>Equals</code> signals that there may be a comparison of values going on.
-2. The <code>Equals</code> method may be overriden[^3] and the overriden comparison will also be used when comparing implementations as their common interface.
+2. The <code>Equals</code> method may be overriden[^3] and the overriden comparison will also be used when comparing implementations as their common interface. Thus, you can later on change your mind about how you want to compare two objects without having to refactor maybe hundreds of lines of code.
 
 Let's see this in action. Using the [automatically generated implementation](https://docs.microsoft.com/de-de/visualstudio/ide/reference/generate-equals-gethashcode-methods?view=vs-2019) for our <code>Product</code> class we get the following code:
 
@@ -80,12 +80,15 @@ Now the Equals method returns true for two instances of the <code>Product</code>
   Console.WriteLine(product1 == product2); //Output: false
   Console.WriteLine(product1.Equals(product2)); //Output: true 
 
-  Dictionary<IProduct, int> dict = new Dictionary<IProduct, int> { { product1, 1 } };
+  Dictionary<IProduct, int> dict = new Dictionary<IProduct, int> 
+  { 
+      { product1, 1 } 
+  };
   dict[product2] = 2;
   Console.WriteLine(dict[product1]); //Output: 2
 {% endhighlight %}
 
-To emphasize on that again: We cannot change the behaviour of == in line 4, it's a public static operator defined for <code>Object</code>. But by overriding Equals we may achieve to compare two interfaces based on values.
+To emphasize on that again: We cannot change the behaviour of == in line 5, it's a public static operator defined for <code>Object</code>. But by overriding Equals we may achieve to compare two interfaces based on values.
 
 In order to implement the requested behaviour into our ProductCatalogue from above, we simply change it to
 {% highlight c# %} 
