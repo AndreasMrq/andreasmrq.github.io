@@ -1,5 +1,5 @@
 ---
-title:  "Why You Should Use .Equals (Instead Of ==)"
+title:  "Why You Should Use .Equals in C#"
 date:   2021-01-09 11:13:48 +0100
 categories: C# Equality
 tags: C# Equals == IEquatable
@@ -12,25 +12,25 @@ While I was well aware of the fact that this does an equality check on the refer
 
 To be able to better explain the problem, let's first create a setting. Let's assume we have a class <code>Product</code> that implements an <code>IProduct</code> interface.
 
-{% highlight csharp %} 
-  public class Product : IProduct
-  {
-      public string Id { get; set; }
-      public double Price { get; set; }
-  }
-{% endhighlight %}
+~~~c#
+public class Product : IProduct
+{
+    public string Id { get; set; }
+    public double Price { get; set; }
+}
+~~~
 
-{% highlight c# %} 
-    public interface IProduct
-    {
-        public string Id { get; }
-        public double Price { get; set; }
-    }
-{% endhighlight %}
+~~~c#
+public interface IProduct
+{
+    string Id { get; }
+    double Price { get; set; }
+}
+~~~
 
 Now instances of <code>Product</code> are passed around your application as <code>IProduct</code>, ensuring that the Id property is not changed. Now you could have another class like
 
-{% highlight c# linenos %} 
+~~~csharp 
 public class ProductCatalogue
 {
     public IProduct SelectedProduct { get; set; }
@@ -40,9 +40,9 @@ public class ProductCatalogue
         return SelectedProduct == product;
     }
 }
-{% endhighlight %}
+~~~
 
-By default, the code on line 8 will perform a check on reference equality[^2]. But the catch is, since we compare interfaces and not the implementations, **we have no means of overloading the operator**. Why is that a problem? In my case it turned out after some significant development time that the default equality check for the class <code>Product</code> should no longer be a check upon the reference but a check if the Id property coincides.
+By default, the code in <code>IsProductSelected</code> will perform a check on reference equality[^2]. But the catch is, since we compare interfaces and not the implementations, **we have no means of overloading the operator**. Why is that a problem? In my case it turned out after some significant development time that the default equality check for the class <code>Product</code> should no longer be a check upon the reference but a check if the Id property coincides.
 
 ## Some Objects Are More .Equals Than Others
 A more future-proof way of performing equality checks on objects is to use the [Equals](https://docs.microsoft.com/de-de/dotnet/api/system.object.equals?view=net-5.0) method or the [ReferenceEquals](https://docs.microsoft.com/de-de/dotnet/api/system.object.referenceequals?view=net-5.0) method if you are sure that you will only want to compare references. Using these methods has two advantages:
@@ -52,56 +52,56 @@ A more future-proof way of performing equality checks on objects is to use the [
 
 Let's see this in action. Using the [automatically generated implementation](https://docs.microsoft.com/de-de/visualstudio/ide/reference/generate-equals-gethashcode-methods?view=vs-2019) for our <code>Product</code> class we get the following code:
 
-{% highlight c# %} 
-  public class Product : IProduct
-  {
-      public string Id { get; set; }
-      public double Price { get; set; }
+~~~c#
+public class Product : IProduct
+{
+    public string Id { get; set; }
+    public double Price { get; set; }
 
-      public override bool Equals(object obj)
-      {
-          return obj is Product product &&
-                  Id == product.Id;
-      }
+    public override bool Equals(object obj)
+    {
+        return obj is Product product &&
+                Id == product.Id;
+    }
 
-      public override int GetHashCode()
-      {
-          return HashCode.Combine(Id);
-      }
-  }
-{% endhighlight %}
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Id);
+    }
+}
+~~~
 
 Now the Equals method returns true for two instances of the <code>Product</code> class, if their Id coincides. Moreover, Equals still works as expected when used with <code>IProduct</code> Objects. Note that Lists, Dictionaries etc. and many LINQ methods also essentially use <code>Equals</code> when comparing entries. As an example you cannot have two different Product instances with the same Id as Keys in a Dictionary.
 
-{% highlight c# linenos%} 
-  IProduct product1 = new Product { Id = "test" };
-  IProduct product2 = new Product { Id = "test" };
+~~~c#
+IProduct product1 = new Product { Id = "test" };
+IProduct product2 = new Product { Id = "test" };
 
-  Console.WriteLine(product1 == product2); //Output: false
-  Console.WriteLine(product1.Equals(product2)); //Output: true 
+Console.WriteLine(product1 == product2); //Output: false
+Console.WriteLine(product1.Equals(product2)); //Output: true 
 
-  Dictionary<IProduct, int> dict = new Dictionary<IProduct, int> 
-  { 
-      { product1, 1 } 
-  };
-  dict[product2] = 2;
-  Console.WriteLine(dict[product1]); //Output: 2
-{% endhighlight %}
+Dictionary<IProduct, int> dict = new Dictionary<IProduct, int> 
+{ 
+    { product1, 1 } 
+};
+dict[product2] = 2;
+Console.WriteLine(dict[product1]); //Output: 2
+~~~
 
-To emphasize on that again: We cannot change the behaviour of == in line 5, it's a public static operator defined for <code>Object</code>. But by overriding Equals we may achieve to compare two interfaces based on values.
+To emphasize on that again: We cannot change the behaviour of == when cmparing <code>product1</code> and <code>product2</code>, it's a public static operator defined for <code>Object</code>. But by overriding Equals we may achieve to compare two interfaces based on values.
 
 In order to implement the requested behaviour into our ProductCatalogue from above, we simply change it to
-{% highlight c# %} 
-  public class ProductCatalogue
-  {
-      public IProduct SelectedProduct { get; set; }
+~~~c#
+public class ProductCatalogue
+{
+    public IProduct SelectedProduct { get; set; }
 
-      public bool IsProductSelected(IProduct product)
-      {
-          return SelectedProduct?.Equals(product) ?? false;
-      }
-  }
-{% endhighlight %}
+    public bool IsProductSelected(IProduct product)
+    {
+        return SelectedProduct?.Equals(product) ?? false;
+    }
+}
+~~~
 
 Here we use the null-conditional operator to make sure that no exception is thrown when <code>SelectedProduct</code> is <code>null</code>. Of course there are also scenarios where you would **want** that to throw an exception.
 
@@ -109,29 +109,31 @@ Here we use the null-conditional operator to make sure that no exception is thro
 If you are new to an existing codebase, it can be quite cumbersome to distinguish whether an <code>Equals</code> check compares references or values. To make the intent clearer I definitely recommend also implementing <code>IEquatable&lt;T&gt;</code> whenever you override <code>Equals</code>. You will also gain a slight performance increase in [some situations](https://stackoverflow.com/a/19241925).
 Again using the Visual Studio generated methods we end up with 
 
-{% highlight c# linenos %} 
-  public class Product : IProduct, IEquatable<Product>
-  {
-      public string Id { get; set; }
-      public double Price { get; set; }
+~~~c#
+public class Product : IProduct, IEquatable<Product>
+{
+    public string Id { get; set; }
+    public double Price { get; set; }
 
-      public override bool Equals(object obj)
-      {
-          return Equals(obj as Product);
-      }
+    public override bool Equals(object obj)
+    {
+        return Equals(obj as Product);
+    }
 
-      public bool Equals(Product other)
-      {
-          return other != null &&
-                  Id == other.Id;
-      }
+    public virtual bool Equals(Product other)
+    {
+        return other != null &&
+                Id == other.Id;
+    }
 
-      public override int GetHashCode()
-      {
-          return HashCode.Combine(Id);
-      }
-  }
-{% endhighlight%}
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Id);
+    }
+}
+~~~
+
+It is best practice to either mark <code>Product</code> as sealed or the<code>Equals</code> method as virtual. The background is that if you don't do that, possible derived classes will default to use the comparison of their base class. Thus instances of two entirely different classes may be considered as equal and you probably don't want that. See also this [SonarSource Rule](https://rules.sonarsource.com/csharp/RSPEC-4035).
 
 ## Footnotes
 [^1]: Like <code>int, double, char</code> and also <code>string</code> albeit it's not a ValueType.
