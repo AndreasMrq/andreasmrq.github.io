@@ -1,5 +1,5 @@
 ---
-title:  "Clean Architecture TL;DR"
+title:  "Register Logging in"
 date:   2021-02-06 11:13:48 +0100
 categories: book software architecture clean
 tags: architecture software clean
